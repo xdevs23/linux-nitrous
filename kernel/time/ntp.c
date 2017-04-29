@@ -498,7 +498,7 @@ out:
 static void sync_hw_clock(struct work_struct *work);
 static DECLARE_WORK(sync_work, sync_hw_clock);
 static struct hrtimer sync_hrtimer;
-#define SYNC_PERIOD_NS (11ULL * 60 * NSEC_PER_SEC)
+#define SYNC_PERIOD_NS (11ULL * 120 * NSEC_PER_SEC)
 
 static enum hrtimer_restart sync_timer_callback(struct hrtimer *timer)
 {
