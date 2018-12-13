@@ -68,6 +68,7 @@
 #include <linux/lockdep.h>
 #include <linux/nmi.h>
 #include <linux/psi.h>
+#include <linux/padata.h>
 
 #include <asm/sections.h>
 #include <asm/tlbflush.h>
@@ -1729,6 +1730,25 @@ deferred_init_maxorder(struct zone *zone, unsigned long *start_pfn,
 	return nr_pages;
 }
 
+struct def_init_args {
+	struct zone *zone;
+	atomic_long_t nr_pages;
+};
+
+static void __init deferred_init_memmap_chunk(unsigned long spfn,
+					      unsigned long epfn, void *arg)
+{
+	struct def_init_args *args = arg;
+	unsigned long nr_pages = 0;
+
+	while (spfn < epfn) {
+		nr_pages += deferred_init_maxorder(args->zone, &spfn, epfn);
+		cond_resched();
+	}
+
+	atomic_long_add(nr_pages, &args->nr_pages);
+}
+
 /* Initialise remaining memory on a node */
 static int __init deferred_init_memmap(void *data)
 {
@@ -1738,7 +1758,7 @@ static int __init deferred_init_memmap(void *data)
 	unsigned long first_init_pfn, flags;
 	unsigned long start = jiffies;
 	struct zone *zone;
-	int zid;
+	int zid, max_threads;
 	u64 i;
 
 	/* Bind memory initialisation thread to a local node if possible */
@@ -1778,15 +1798,25 @@ static int __init deferred_init_memmap(void *data)
 		goto zone_empty;
 
 	/*
-	 * Initialize and free pages in MAX_ORDER sized increments so
-	 * that we can avoid introducing any issues with the buddy
-	 * allocator.
+	 * More CPUs always led to greater speedups on tested systems, up to
+	 * all the nodes' CPUs.  Use all since the system is otherwise idle now.
 	 */
+	max_threads = max(cpumask_weight(cpumask), 1u);
+
 	for_each_free_mem_pfn_range_in_zone_from(i, zone, &spfn, &epfn) {
-		while (spfn < epfn) {
-			nr_pages += deferred_init_maxorder(zone, &spfn, epfn);
-			cond_resched();
-		}
+		struct def_init_args args = { zone, ATOMIC_LONG_INIT(0) };
+		struct padata_mt_job job = {
+			.thread_fn   = deferred_init_memmap_chunk,
+			.fn_arg      = &args,
+			.start       = spfn,
+			.size	     = epfn - spfn,
+			.align	     = MAX_ORDER_NR_PAGES,
+			.min_chunk   = MAX_ORDER_NR_PAGES,
+			.max_threads = max_threads,
+		};
+
+		padata_do_multithreaded(&job);
+		nr_pages += atomic_long_read(&args.nr_pages);
 	}
 zone_empty:
 	/* Sanity check that the next zone really is unpopulated */
