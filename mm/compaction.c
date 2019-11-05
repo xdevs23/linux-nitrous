@@ -2599,7 +2599,7 @@ static void __init compaction_init(void)
 		struct compaction_state *c = &compaction_states[node];
 
 		c->node_id = node;
-		c->hpage_compaction_effort = 0;
+		c->hpage_compaction_effort = 60;
 		snprintf(c->name, COMPACTION_STATE_NAME_LEN, "node-%d", node);
 	}
 }
