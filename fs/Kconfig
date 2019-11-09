@@ -110,6 +110,22 @@ config MANDATORY_FILE_LOCKING
 
 	  To the best of my knowledge this is dead code that no one cares about.
 
+config FS_SYSCTL_PROTECTED_SYMLINKS
+    bool "Enable sysctl protected symlinks"
+    default n
+
+config FS_SYSCTL_PROTECTED_HARDLINKS
+    bool "Enable sysctl protected hardlinks"
+    default n
+
+config FS_SYSCTL_PROTECTED_FIFOS
+    bool "Enable sysctl protected fifos"
+    default n
+
+config FS_SYSCTL_PROTECTED_REGULAR
+    bool "Enable sysctl protected regular files"
+    default n
+
 source "fs/crypto/Kconfig"
 
 source "fs/verity/Kconfig"
