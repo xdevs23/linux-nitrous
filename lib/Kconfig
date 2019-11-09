@@ -689,6 +689,10 @@ config PARMAN
 config OBJAGG
 	tristate "objagg" if COMPILE_TEST
 
+config KPTR_RESTRICT
+    int "Kernel Pointer Restriction (lib/vsprintf.c kptr_restrict)"
+    default 0
+
 endmenu
 
 config GENERIC_IOREMAP
