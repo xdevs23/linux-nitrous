@@ -672,6 +672,10 @@ config OBJAGG
 config STRING_SELFTEST
 	tristate "Test string functions"
 
+config KPTR_RESTRICT
+    int "Kernel Pointer Restriction (lib/vsprintf.c kptr_restrict)"
+    default 0
+
 endmenu
 
 config GENERIC_IOREMAP
