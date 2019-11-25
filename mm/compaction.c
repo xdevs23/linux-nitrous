@@ -26,7 +26,7 @@
 #include "internal.h"
 
 #ifdef CONFIG_COMPACTION
-struct compaction_state compaction_states[MAX_NUMNODES];
+static struct compaction_state compaction_states[MAX_NUMNODES];
 #endif
 
 #ifdef CONFIG_COMPACTION
@@ -1863,7 +1863,7 @@ static unsigned int extfrag_hpage_wmark(struct zone *zone, bool low)
 	wmark_low = 100 - compaction_states[node_id].hpage_compaction_effort;
 	wmark = low ? wmark_low : min(wmark_low + 10, 100);
 
-	return extfrag_for_order(zone, HPAGE_PMD_ORDER) > wmark;
+	return extfrag_for_order(zone, HUGETLB_PAGE_ORDER) > wmark;
 }
 
 static bool node_hpage_should_compact(pg_data_t *pgdat)
@@ -1872,7 +1872,7 @@ static bool node_hpage_should_compact(pg_data_t *pgdat)
 
 	for_each_populated_zone(zone) {
 		if (extfrag_hpage_wmark(zone, false) &&
-			compaction_suitable(zone, HPAGE_PMD_ORDER,
+			compaction_suitable(zone, HUGETLB_PAGE_ORDER,
 				0, zone_idx(zone)) == COMPACT_CONTINUE) {
 			return true;
 		}
