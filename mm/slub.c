@@ -1660,9 +1660,10 @@ static inline bool slab_free_freelist_hook(struct kmem_cache *s,
 			 * need to show a valid freepointer to check_object().
 			 *
 			 * Note that doing this for all caches (not just ctor
-			 * ones, which have s->offset != NULL)) causes a GPF,
-			 * due to KASAN poisoning and the way set_freepointer()
-			 * eventually dereferences the freepointer.
+			 * ones, which have s->offset >= object_size)) causes a
+			 * GPF, due to KASAN poisoning and the way
+			 * set_freepointer() eventually dereferences the
+			 * freepointer.
 			 */
 			set_freepointer(s, object, NULL);
 		}
@@ -2972,8 +2973,14 @@ redo:
 		if (s->ctor)
 			s->ctor(object);
 		kasan_poison_object_data(s, object);
-	} else if (unlikely(slab_want_init_on_alloc(gfpflags, s)) && object)
+	} else if (unlikely(slab_want_init_on_alloc(gfpflags, s)) && object) {
 		memset(kasan_reset_tag(object), 0, s->object_size);
+		if (s->ctor) {
+			kasan_unpoison_object_data(s, object);
+			s->ctor(object);
+			kasan_poison_object_data(s, object);
+		}
+	}
 
 out:
 	if (object) {
@@ -3450,8 +3457,14 @@ int kmem_cache_alloc_bulk(struct kmem_cache *s, gfp_t flags, size_t size,
 	} else if (unlikely(slab_want_init_on_alloc(flags, s))) {
 		int j;
 
-		for (j = 0; j < i; j++)
+		for (j = 0; j < i; j++) {
 			memset(kasan_reset_tag(p[j]), 0, s->object_size);
+			if (s->ctor) {
+				kasan_unpoison_object_data(s, p[j]);
+				s->ctor(p[j]);
+				kasan_poison_object_data(s, p[j]);
+			}
+		}
 	}
 
 	for (k = 0; k < i; k++) {
