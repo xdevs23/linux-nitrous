@@ -2473,6 +2473,12 @@
 				     SMT on vulnerable CPUs
 			off        - Unconditionally disable MDS mitigation
 
+			On TAA-affected machines, mds=off can be prevented by
+			an active TAA mitigation as both vulnerabilities are
+			mitigated with the same mechanism so in order to disable
+			this mitigation, you need to specify tsx_async_abort=off
+			too.
+
 			Not specifying this option is equivalent to
 			mds=full.
 
@@ -4282,6 +4288,14 @@
 			Memory area to be used by remote processor image,
 			managed by CMA.
 
+	rqshare=	[X86] Select the MuQSS scheduler runqueue sharing type.
+			Format: <string>
+			smt -- Share SMT (hyperthread) sibling runqueues
+			mc -- Share MC (multicore) sibling runqueues
+			smp -- Share SMP runqueues
+			none -- So not share any runqueues
+			Default value is mc
+
 	rw		[KNL] Mount root device read-write on boot
 
 	S		[KNL] Run init in single mode
@@ -4935,6 +4949,11 @@
 				     is not disabled because CPU is not
 				     vulnerable to cross-thread TAA attacks.
 			off        - Unconditionally disable TAA mitigation
+
+			On MDS-affected machines, tsx_async_abort=off can be
+			prevented by an active MDS mitigation as both vulnerabilities
+			are mitigated with the same mechanism so in order to disable
+			this mitigation, you need to specify mds=off too.
 
 			Not specifying this option is equivalent to
 			tsx_async_abort=full.  On CPUs which are MDS affected
