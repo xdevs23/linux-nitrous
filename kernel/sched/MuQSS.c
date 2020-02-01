@@ -473,7 +473,7 @@ static inline bool trylock_rq(struct rq *this_rq, struct rq *rq)
 /* Unlock a specially nested trylocked rq */
 static inline void unlock_rq(struct rq *rq)
 {
-	spin_release(&rq->lock->dep_map, 1, _RET_IP_);
+	spin_release(&rq->lock->dep_map, _RET_IP_);
 	do_raw_spin_unlock(rq->lock);
 }
 
@@ -2593,7 +2593,7 @@ prepare_lock_switch(struct rq *rq, struct task_struct *next)
 	 * of the scheduler it's an obvious special-case), so we
 	 * do an early lockdep release here:
 	 */
-	spin_release(&rq->lock->dep_map, 1, _THIS_IP_);
+	spin_release(&rq->lock->dep_map, _THIS_IP_);
 #ifdef CONFIG_DEBUG_SPINLOCK
 	/* this is a valid case when another task releases the spinlock */
 	rq->lock->owner = next;
