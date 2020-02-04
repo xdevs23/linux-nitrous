@@ -62,6 +62,7 @@
 #include <asm/tlb.h>
 
 #include "../workqueue_internal.h"
+#include "../../fs/io-wq.h"
 #include "../smpboot.h"
 
 #define CREATE_TRACE_POINTS
@@ -112,7 +113,7 @@
 
 void print_scheduler_version(void)
 {
-	printk(KERN_INFO "MuQSS CPU scheduler v0.196 by Con Kolivas.\n");
+	printk(KERN_INFO "MuQSS CPU scheduler v0.198 by Con Kolivas.\n");
 }
 
 /* Define RQ share levels */
@@ -1699,13 +1700,6 @@ static inline int __set_cpus_allowed_ptr(struct task_struct *p,
 }
 #endif /* CONFIG_SMP */
 
-/*
- * wake flags
- */
-#define WF_SYNC		0x01		/* waker goes to sleep after wakeup */
-#define WF_FORK		0x02		/* child wakeup after fork */
-#define WF_MIGRATED	0x04		/* internal use, task got migrated */
-
 static void
 ttwu_stat(struct task_struct *p, int cpu, int wake_flags)
 {
@@ -2193,7 +2187,7 @@ int sched_fork(unsigned long __maybe_unused clone_flags, struct task_struct *p)
 	 * Revert to default priority/policy on fork if requested.
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
-		if (p->policy == SCHED_FIFO || p->policy == SCHED_RR) {
+		if (p->policy == SCHED_FIFO || p->policy == SCHED_RR || p-> policy == SCHED_ISO) {
 			p->policy = SCHED_NORMAL;
 			p->normal_prio = normal_prio(p);
 		}
@@ -4188,9 +4182,12 @@ static inline void sched_submit_work(struct task_struct *tsk)
 	 * we disable preemption to avoid it calling schedule() again
 	 * in the possible wakeup of a kworker.
 	 */
-	if (tsk->flags & PF_WQ_WORKER) {
+	if (tsk->flags & (PF_WQ_WORKER | PF_IO_WORKER)) {
 		preempt_disable();
-		wq_worker_sleeping(tsk);
+		if (tsk->flags & PF_WQ_WORKER)
+			wq_worker_sleeping(tsk);
+		else
+			io_wq_worker_sleeping(tsk);
 		preempt_enable_no_resched();
 	}
 
@@ -4207,8 +4204,12 @@ static inline void sched_submit_work(struct task_struct *tsk)
 
 static inline void sched_update_worker(struct task_struct *tsk)
 {
-	if (tsk->flags & PF_WQ_WORKER)
-		wq_worker_running(tsk);
+	if (tsk->flags & (PF_WQ_WORKER | PF_IO_WORKER)) {
+		if (tsk->flags & PF_WQ_WORKER)
+			wq_worker_running(tsk);
+		else
+			io_wq_worker_running(tsk);
+	}
 }
 
 asmlinkage __visible void __sched schedule(void)
@@ -6822,7 +6823,7 @@ void __init sched_init_smp(void)
 	 * treated as not local. CPUs not even in the same domain (different
 	 * nodes) are treated as very distant.
 	 */
-	for (cpu = num_online_cpus() - 1; cpu >= 0; cpu--) {
+	for (cpu = 0; cpu < num_online_cpus(); cpu++) {
 		rq = cpu_rq(cpu);
 		leader = NULL;
 		/* First check if this cpu is in the same node */

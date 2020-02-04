@@ -58,6 +58,13 @@
 # define SCHED_WARN_ON(x)	((void)(x))
 #endif
 
+/*
+ * wake flags
+ */
+#define WF_SYNC		0x01		/* waker goes to sleep after wakeup */
+#define WF_FORK		0x02		/* child wakeup after fork */
+#define WF_MIGRATED	0x04		/* internal use, task got migrated */
+
 /* task_struct::on_rq states: */
 #define TASK_ON_RQ_QUEUED	1
 #define TASK_ON_RQ_MIGRATING	2

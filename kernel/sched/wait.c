@@ -6,13 +6,6 @@
  */
 #include "sched.h"
 
-/*
- * wake flags
- */
-#ifndef WF_SYNC
-#define WF_SYNC		0x01		/* waker goes to sleep after wakeup */
-#endif
-
 void __init_waitqueue_head(struct wait_queue_head *wq_head, const char *name, struct lock_class_key *key)
 {
 	spin_lock_init(&wq_head->lock);

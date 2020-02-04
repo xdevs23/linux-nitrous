@@ -1918,7 +1918,9 @@ signed long __sched schedule_timeout(signed long timeout)
 	/* Remove the timer from the object tracker */
 	destroy_timer_on_stack(&timer.timer);
 
+#if defined(CONFIG_HIGH_RES_TIMERS) && defined(CONFIG_SCHED_MUQSS)
 out_timeout:
+#endif
 	timeout = expire - jiffies;
 
  out:
