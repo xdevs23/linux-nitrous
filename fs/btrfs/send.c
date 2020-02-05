@@ -5805,18 +5805,6 @@ static int process_extent(struct send_ctx *sctx,
 		}
 	}
 
-	/*
-	 * There might be a hole between the end of the last processed extent
-	 * and this extent, and we may have not sent a write operation for that
-	 * hole because it was not needed (range is beyond eof in the parent
-	 * snapshot). So adjust the next write offset to the offset of this
-	 * extent, as we want to make sure we don't do mistakes when checking if
-	 * we can clone this extent from some other offset in this inode or when
-	 * detecting if we need to issue a truncate operation when finishing the
-	 * processing this inode.
-	 */
-	sctx->cur_inode_next_write_offset = key->offset;
-
 	ret = find_extent_clone(sctx, path, key->objectid, key->offset,
 			sctx->cur_inode_size, &found_clone);
 	if (ret != -ENOENT && ret < 0)

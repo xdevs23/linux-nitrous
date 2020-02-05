@@ -2,7 +2,7 @@
 VERSION = 5
 PATCHLEVEL = 5
 SUBLEVEL = 1
-EXTRAVERSION =
+EXTRAVERSION = -zen
 NAME = Kleptomaniac Octopus
 
 # *DOCUMENTATION*
@@ -14,6 +14,8 @@ NAME = Kleptomaniac Octopus
 # That's our default target when none is given on the command line
 PHONY := _all
 _all:
+
+EXTRAVERSION =
 
 # We are using a recursive build, so we need to do a little thinking
 # to get the ordering right.
