@@ -4444,7 +4444,7 @@ retry_cpuset:
 
 	if (alloc_flags & ALLOC_KSWAPD) {
 		if (!woke_kswapd) {
-			refcount_inc(&pgdat->kswapd_waiters);
+			atomic_inc(&pgdat->kswapd_waiters);
 			woke_kswapd = true;
 		}
 		wake_all_kswapds(order, gfp_mask, ac);
@@ -4655,7 +4655,7 @@ nopage:
 fail:
 got_pg:
 	if (woke_kswapd)
-		refcount_dec(&pgdat->kswapd_waiters);
+		atomic_dec(&pgdat->kswapd_waiters);
 	if (!page)
 		warn_alloc(gfp_mask, ac->nodemask,
 				"page allocation failure: order:%u", order);
@@ -6705,7 +6705,7 @@ static void __meminit pgdat_init_internals(struct pglist_data *pgdat)
 	pgdat_page_ext_init(pgdat);
 	spin_lock_init(&pgdat->lru_lock);
 	lruvec_init(&pgdat->__lruvec);
-	pgdat->kswapd_waiters = (refcount_t)REFCOUNT_INIT(0);
+	pgdat->kswapd_waiters = (atomic_t)ATOMIC_INIT(0);
 }
 
 static void __meminit zone_init_internals(struct zone *zone, enum zone_type idx, int nid,
