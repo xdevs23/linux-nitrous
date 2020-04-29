@@ -177,7 +177,9 @@ struct rq {
 	raw_spinlock_t *lock;
 	raw_spinlock_t *orig_lock;
 
-	struct task_struct *curr, *idle, *stop;
+	struct task_struct __rcu	*curr;
+	struct task_struct	*idle;
+	struct task_struct	*stop;
 	struct mm_struct *prev_mm;
 
 	unsigned int nr_running;
@@ -787,11 +789,6 @@ unsigned int uclamp_rq_util_with(struct rq __maybe_unused *rq, unsigned int util
 	return util;
 }
 
-static inline unsigned int uclamp_util(struct rq *rq, unsigned int util)
-{
-	return util;
-}
-
 #ifdef arch_scale_freq_capacity
 #ifndef arch_scale_freq_invariant
 #define arch_scale_freq_invariant()	(true)
@@ -1006,6 +1003,19 @@ static inline void membarrier_switch_mm(struct rq *rq,
 					struct mm_struct *prev_mm,
 					struct mm_struct *next_mm)
 {
+}
+#endif
+
+#ifdef CONFIG_SMP
+static inline bool is_per_cpu_kthread(struct task_struct *p)
+{
+	if (!(p->flags & PF_KTHREAD))
+		return false;
+
+	if (p->nr_cpus_allowed != 1)
+		return false;
+
+	return true;
 }
 #endif
 
