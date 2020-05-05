@@ -31,6 +31,8 @@ All contributions to the Linux Kernel are subject to this COPYING file.
 
 ## License
 
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/LICENSES
+
 ```
 Valid-License-Identifier: GPL-2.0
 Valid-License-Identifier: GPL-2.0-only
