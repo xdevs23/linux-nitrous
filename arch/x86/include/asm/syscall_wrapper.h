@@ -63,6 +63,7 @@ struct pt_regs;
 	SYSCALL_METADATA(_##sname, 0);					\
 	asmlinkage long __x64_sys_##sname(const struct pt_regs *__unused);\
 	ALLOW_ERROR_INJECTION(__x64_sys_##sname, ERRNO);		\
+    asmlinkage long __ia32_sys_##sname(void);               \
 	SYSCALL_ALIAS(__ia32_sys_##sname, __x64_sys_##sname);		\
 	asmlinkage long __x64_sys_##sname(const struct pt_regs *__unused)
 

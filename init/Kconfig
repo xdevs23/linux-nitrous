@@ -1360,6 +1360,48 @@ config LD_DEAD_CODE_DATA_ELIMINATION
 	  present. This option is not well tested yet, so use at your
 	  own risk.
 
+config ARCH_SUPPORTS_LTO
+	bool
+
+config LTO
+	bool "Enable gcc link time optimization (LTO)"
+	depends on ARCH_SUPPORTS_LTO
+	# 4.7 works mostly, but it sometimes loses symbols on large builds
+	# This can be worked around by marking those symbols visible,
+	# but that is fairly ugly and the problem is gone with 4.8
+	# 4.8 was very slow
+	# 4.9 was missing __attribute__((noreorder)) for ordering initcalls,
+	# and needed -fno-toplevel-reorder, which can lead to missing symbols
+	# so only support 5.0+
+	# 6.0 exploded with ubsan enabled
+	# now only 7.0+ but 5.0+ will likely still work except for ubsan
+	depends on CC_IS_GCC && GCC_VERSION >= 70000 && !COMPILE_TEST
+	help
+	  With this option gcc will do whole program optimizations for
+	  the whole kernel and module. This increases compile time, but can
+	  lead to smaller kernels and potentially better code.  It also
+	  allows gcc to detect some problems, such as type mismatches
+	  between files and some other global analysis.
+	  It allows gcc to inline functions between different files and do
+	  other global optimizations.
+
+	  This requires a gcc 7.0 or later compiler. gcc 8+ is recommended
+	  for better build performance.
+
+	  On larger configurations this may need more than 4GB of RAM.
+	  It will likely not work well with a 32bit compiler.
+
+	  When the toolchain support is not available this will
+	  be automatically disabled.
+
+config LTO_CP_CLONE
+	bool "Allow aggressive cloning for function specialization"
+	depends on LTO
+	help
+	  Allow the compiler to clone and specialize functions for specific
+	  arguments when it determines these arguments are very commonly
+	  called.  Experimential. Will increase text size.
+
 config SYSCTL
 	bool
 
@@ -2081,6 +2123,7 @@ config MODULE_FORCE_UNLOAD
 
 config MODVERSIONS
 	bool "Module versioning support"
+	depends on !LTO
 	help
 	  Usually, you have to use modules compiled with your kernel.
 	  Saying Y here makes it sometimes possible to use modules
