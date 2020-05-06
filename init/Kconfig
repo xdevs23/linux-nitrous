@@ -1364,7 +1364,7 @@ config ARCH_SUPPORTS_LTO
 	bool
 
 config LTO
-	bool "Enable gcc link time optimization (LTO)"
+	bool "Enable link time optimization (LTO)"
 	depends on ARCH_SUPPORTS_LTO
 	# 4.7 works mostly, but it sometimes loses symbols on large builds
 	# This can be worked around by marking those symbols visible,
@@ -1375,18 +1375,19 @@ config LTO
 	# so only support 5.0+
 	# 6.0 exploded with ubsan enabled
 	# now only 7.0+ but 5.0+ will likely still work except for ubsan
-	depends on CC_IS_GCC && GCC_VERSION >= 70000 && !COMPILE_TEST
+	depends on (CC_IS_GCC && GCC_VERSION >= 70000) || (CC_IS_CLANG && CLANG_VERSION >= 100000) && !COMPILE_TEST
 	help
-	  With this option gcc will do whole program optimizations for
+	  With this option the compiler will do whole program optimizations for
 	  the whole kernel and module. This increases compile time, but can
 	  lead to smaller kernels and potentially better code.  It also
-	  allows gcc to detect some problems, such as type mismatches
+	  allows gcc or clang to detect some problems, such as type mismatches
 	  between files and some other global analysis.
-	  It allows gcc to inline functions between different files and do
+	  It allows gcc or clang to inline functions between different files and do
 	  other global optimizations.
 
-	  This requires a gcc 7.0 or later compiler. gcc 8+ is recommended
-	  for better build performance.
+	  For GCC, this requires a gcc/clang 7.0 or later compiler. gcc 8+ is recommended
+	  for better build performance
+	  For clang, this required a clang 10 or later compiler
 
 	  On larger configurations this may need more than 4GB of RAM.
 	  It will likely not work well with a 32bit compiler.
@@ -1396,7 +1397,7 @@ config LTO
 
 config LTO_CP_CLONE
 	bool "Allow aggressive cloning for function specialization"
-	depends on LTO
+	depends on LTO && CC_IS_GCC
 	help
 	  Allow the compiler to clone and specialize functions for specific
 	  arguments when it determines these arguments are very commonly

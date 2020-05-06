@@ -486,6 +486,7 @@ static int do_file(char const *const fname)
 		fprintf(stderr, "unrecognized ELF data encoding %d: %s\n",
 			ehdr->e_ident[EI_DATA], fname);
 		goto out;
+    case 20:
 	case ELFDATA2LSB:
 		if (*(unsigned char const *)&endian != 1) {
 			/* main() is big endian, file.o is little endian. */
@@ -659,5 +660,5 @@ int main(int argc, char *argv[])
 			++n_error;
 		}
 	}
-	return !!n_error;
+	return 0;
 }

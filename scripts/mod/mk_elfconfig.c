@@ -4,18 +4,25 @@
 #include <string.h>
 #include <elf.h>
 
+#define LLVMLTOMAG "\x42\x43"
+#define SLLVMTOMAG 2
+
 int
 main(int argc, char **argv)
 {
 	unsigned char ei[EI_NIDENT];
 	union { short s; char c[2]; } endian_test;
+    int is_llvm_lto = 0;
 
 	if (fread(ei, 1, EI_NIDENT, stdin) != EI_NIDENT) {
 		fprintf(stderr, "Error: input truncated\n");
 		return 1;
 	}
-	if (memcmp(ei, ELFMAG, SELFMAG) != 0) {
-		fprintf(stderr, "Error: not ELF\n");
+    if (memcmp(ei, LLVMLTOMAG, SLLVMTOMAG) == 0) {
+        fprintf(stderr, "LLVM LTO object file detected\n");
+        is_llvm_lto = 1;
+    } else if (memcmp(ei, ELFMAG, SELFMAG) != 0) {
+		fprintf(stderr, "Error: not ELF or LLVM LTO (magic mismatch)\n");
 		return 1;
 	}
 	switch (ei[EI_CLASS]) {
@@ -26,7 +33,9 @@ main(int argc, char **argv)
 		printf("#define KERNEL_ELFCLASS ELFCLASS64\n");
 		break;
 	default:
-		exit(1);
+        if (is_llvm_lto) {
+            printf("#define KERNEL_ELFCLASS ELFCLASS64\n");
+        } else exit(1);
 	}
 	switch (ei[EI_DATA]) {
 	case ELFDATA2LSB:
@@ -36,14 +45,16 @@ main(int argc, char **argv)
 		printf("#define KERNEL_ELFDATA ELFDATA2MSB\n");
 		break;
 	default:
-		exit(1);
+        if (is_llvm_lto) {
+            printf("#define KERNEL_ELFDATA ELFDATA2LSB\n");
+        } else exit(1);
 	}
 
 	if (sizeof(unsigned long) == 4) {
 		printf("#define HOST_ELFCLASS ELFCLASS32\n");
 	} else if (sizeof(unsigned long) == 8) {
 		printf("#define HOST_ELFCLASS ELFCLASS64\n");
-	}
+    }
 
 	endian_test.s = 0x0102;
 	if (memcmp(endian_test.c, "\x01\x02", 2) == 0)

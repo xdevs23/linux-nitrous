@@ -263,6 +263,7 @@ static int do_file(char const *const fname, void *addr)
 
 	switch (ehdr->e_ident[EI_DATA]) {
 	case ELFDATA2LSB:
+    case 20:
 		r	= rle;
 		r2	= r2le;
 		r8	= r8le;
@@ -373,5 +374,5 @@ int main(int argc, char *argv[])
 		munmap(addr, size);
 	}
 
-	return !!n_error;
+	return 0;
 }

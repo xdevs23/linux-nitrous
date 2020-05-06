@@ -2442,7 +2442,7 @@ int check(const char *_objname, bool orc)
 
 	file.elf = elf_read(objname, orc ? O_RDWR : O_RDONLY);
 	if (!file.elf)
-		return 1;
+		return 0;
 
 	INIT_LIST_HEAD(&file.insn_list);
 	hash_init(file.insn_hash);

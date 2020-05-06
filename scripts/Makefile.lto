@@ -32,7 +32,11 @@ endif
 endif # CONFIG_LTO
 
 ifdef CONFIG_LTO
+ifeq ($(CC_IS_CLANG),true)
+	LTO_CFLAGS := -flto=thin
+else
 	LTO_CFLAGS := -flto
+endif
 
 	# gcc 8.x doesn't generate debuginfo if we don't
 	# specify -g on the final linking command line.
@@ -40,7 +44,9 @@ ifdef CONFIG_LTO
 	LTO_FINAL_CFLAGS += $(filter -m32, $(KBUILD_CFLAGS))
 	LTO_FINAL_CFLAGS += $(filter -m64, $(KBUILD_CFLAGS))
 
+ifneq ($(CC_IS_CLANG),true)
 	LTO_FINAL_CFLAGS += -flto=jobserver
+endif
 
 	# Used to disable LTO for specific files (e.g. vdso)
 	DISABLE_LTO := -fno-lto
@@ -56,8 +62,14 @@ endif
 
 	KBUILD_CFLAGS += ${LTO_CFLAGS}
 
-	LDFINAL := ${CONFIG_SHELL} ${srctree}/scripts/gcc-ld \
-                  ${LTO_FINAL_CFLAGS}
+	LDFINAL := ${CONFIG_SHELL}
+ifeq ($(CC_IS_CLANG),true)
+	LDFINAL += $(CROSS_COMPILE)$(CC)
+else
+	LDFINAL += ${srctree}/scripts/gcc-ld
+endif
+
+	LDFINAL += ${LTO_FINAL_CFLAGS}
 
 	# LTO gcc creates a lot of files in TMPDIR, and with /tmp as tmpfs
 	# it's easy to drive the machine OOM. Use the object directory
@@ -66,6 +78,10 @@ endif
 	export TMPDIR
 
 	# use plugin aware tools
+ifndef ($(AR))
 	AR = $(CROSS_COMPILE)gcc-ar
+endif
+ifndef ($(NM))
 	NM = $(CROSS_COMPILE)gcc-nm
+endif
 endif # CONFIG_LTO
