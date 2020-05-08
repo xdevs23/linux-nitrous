@@ -39,11 +39,39 @@ info()
 	fi
 }
 
+# Generate a linker script to ensure correct ordering of initcalls.
+gen_initcalls()
+{
+	info GEN .tmp_initcall.lds
+
+	${srctree}/scripts/generate_initcall_order.pl \
+		${KBUILD_VMLINUX_OBJS} ${KBUILD_VMLINUX_LIBS} \
+		> .tmp_initcall.lds
+}
+
+
+# If CONFIG_LTO_CLANG is selected, collect generated symbol versions into
+# .tmp_symversions.lds
+gen_symversions()
+{
+	info GEN .tmp_symversions.lds
+	rm -f .tmp_symversions.lds
+
+	for a in ${KBUILD_VMLINUX_OBJS} ${KBUILD_VMLINUX_LIBS}; do
+		for o in $(${AR} t $a 2>/dev/null); do
+			if [ -f ${o}.symversions ]; then
+				cat ${o}.symversions >> .tmp_symversions.lds
+			fi
+		done
+	done
+}
+
 # Link of vmlinux.o used for section mismatch analysis
 # ${1} output file
 modpost_link()
 {
 	local objects
+	local lds=""
 
 	objects="--whole-archive				\
 		${KBUILD_VMLINUX_OBJS}				\
@@ -52,7 +80,69 @@ modpost_link()
 		${KBUILD_VMLINUX_LIBS}				\
 		--end-group"
 
-	${LD} ${KBUILD_LDFLAGS} -r -o ${1} ${objects}
+	if [ -n "${CONFIG_LTO_CLANG}" ]; then
+		gen_initcalls
+		lds="-T .tmp_initcall.lds"
+
+		if [ -n "${CONFIG_MODVERSIONS}" ]; then
+			gen_symversions
+			lds="${lds} -T .tmp_symversions.lds"
+		fi
+
+		# This might take a while, so indicate that we're doing
+		# an LTO link
+		info LTO ${1}
+	else
+		info LD ${1}
+	fi
+
+	${LD} ${KBUILD_LDFLAGS} -r -o ${1} ${lds} ${objects}
+}
+
+# If CONFIG_LTO_CLANG is selected, we postpone running recordmcount until
+# we have compiled LLVM IR to an object file.
+recordmcount()
+{
+	if [ "${CONFIG_LTO_CLANG} ${CONFIG_FTRACE_MCOUNT_RECORD}" != "y y" ]; then
+		return
+	fi
+
+	if [ -n "${CC_USING_RECORD_MCOUNT}" ]; then
+		return
+	fi
+	if [ -n "${CC_USING_PATCHABLE_FUNCTION_ENTRY}" ]; then
+		return
+	fi
+
+	local flags=""
+
+	[ -n "${RECORDMCOUNT_WARN}" ] && flags="-w"
+
+	info MCOUNT $*
+	${objtree}/scripts/recordmcount ${flags} $*
+}
+
+# If CONFIG_LTO_CLANG is selected, we postpone running objtool until
+# we have compiled LLVM IR to an object file.
+objtool()
+{
+	if [ "${CONFIG_LTO_CLANG} ${CONFIG_STACK_VALIDATION}" != "y y" ]; then
+		return
+	fi
+	if [ -n "${SKIP_STACK_VALIDATION}" ]; then
+		return
+	fi
+
+	local flags
+
+	[ -n "${CONFIG_UNWINDER_ORC}"  ] && flags="orc generate" || flags="check"
+	[ -z "${CONFIG_FRAME_POINTER}" ] && flags="${flags} --no-fp"
+	[ -n "${CONFIG_GCOV_KERNEL}"   ] && flags="${flags} --no-unreachable"
+	[ -n "${CONFIG_RETPOLINE}"     ] && flags="${flags} --retpoline"
+	[ -n "${CONFIG_X86_SMAP}"      ] && flags="${flags} --uaccess"
+
+	info OBJTOOL $*
+	${objtree}/tools/objtool/objtool ${flags} $*
 }
 
 # Link of vmlinux
@@ -61,6 +151,7 @@ modpost_link()
 vmlinux_link()
 {
 	local lds="${objtree}/${KBUILD_LDS}"
+	local extra_lds=""
 	local output=${1}
 	local objects
 
@@ -70,18 +161,36 @@ vmlinux_link()
 	shift
 
 	if [ "${SRCARCH}" != "um" ]; then
-		objects="--whole-archive			\
-			${KBUILD_VMLINUX_OBJS}			\
-			--no-whole-archive			\
-			--start-group				\
-			${KBUILD_VMLINUX_LIBS}			\
-			--end-group				\
-			${@}"
+		for extra_ld in ${KBUILD_EXTRA_LDS}
+		do
+			extra_lds="$extra_lds -T ${objtree}/$extra_ld"
+		done
+		if [ -n "${CONFIG_LTO_CLANG}" ]; then
+			# Use vmlinux.o instead of performing the slow LTO
+			# link again.
+			objects="--whole-archive		\
+				vmlinux.o 			\
+				--no-whole-archive		\
+				${@}"
+		else
+			objects="--whole-archive		\
+				${KBUILD_VMLINUX_OBJS}		\
+				--no-whole-archive		\
+				--start-group			\
+				${KBUILD_VMLINUX_LIBS}		\
+				--end-group			\
+				${@}"
+		fi
 
 		${LD} ${KBUILD_LDFLAGS} ${LDFLAGS_vmlinux}	\
 			-o ${output}				\
-			-T ${lds} ${objects}
+			-T ${lds} ${extra_lds} ${objects}
 	else
+		for extra_ld in ${KBUILD_EXTRA_LDS}
+		do
+			extra_lds="$extra_lds -Wl,-T,${objtree}/$extra_ld"
+		done
+
 		objects="-Wl,--whole-archive			\
 			${KBUILD_VMLINUX_OBJS}			\
 			-Wl,--no-whole-archive			\
@@ -93,6 +202,7 @@ vmlinux_link()
 		${CC} ${CFLAGS_vmlinux}				\
 			-o ${output}				\
 			-Wl,-T,${lds}				\
+			${extra_lds}				\
 			${objects}				\
 			-lutil -lrt -lpthread
 		rm -f linux
@@ -191,6 +301,8 @@ cleanup()
 	rm -f .btf.*
 	rm -f .tmp_System.map
 	rm -f .tmp_kallsyms*
+	rm -f .tmp_initcall.lds
+	rm -f .tmp_symversions.lds
 	rm -f .tmp_vmlinux*
 	rm -f System.map
 	rm -f vmlinux
@@ -242,11 +354,17 @@ fi;
 ${MAKE} -f "${srctree}/scripts/Makefile.build" obj=init need-builtin=1
 
 #link vmlinux.o
-info LD vmlinux.o
 modpost_link vmlinux.o
 
 # modpost vmlinux.o to check for section mismatches
 ${MAKE} -f "${srctree}/scripts/Makefile.modpost" MODPOST_VMLINUX=1
+
+if [ -n "${CONFIG_LTO_CLANG}" ]; then
+	# If we postponed ELF processing steps due to LTO, process
+	# vmlinux.o instead.
+	recordmcount vmlinux.o
+	objtool vmlinux.o
+fi
 
 info MODINFO modules.builtin.modinfo
 ${OBJCOPY} -j .modinfo -O binary vmlinux.o modules.builtin.modinfo
