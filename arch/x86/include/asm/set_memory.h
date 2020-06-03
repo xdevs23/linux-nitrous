@@ -55,11 +55,6 @@ int set_pages_array_wc(struct page **pages, int addrinarray);
 int set_pages_array_wt(struct page **pages, int addrinarray);
 int set_pages_array_wb(struct page **pages, int addrinarray);
 
-#define set_memory_array_uc set_pages_array_uc
-#define set_memory_array_wc set_pages_array_wc
-#define set_memory_array_wt set_pages_array_wt
-#define set_memory_array_wb set_pages_array_wb
-
 /*
  * For legacy compatibility with the old APIs, a few functions
  * are provided that work on a "struct page".
