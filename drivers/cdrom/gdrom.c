@@ -134,6 +134,7 @@ static bool gdrom_data_request(void)
 static bool gdrom_wait_clrbusy(void)
 {
 	unsigned long timeout = jiffies + GDROM_DEFAULT_TIMEOUT;
+
 	while ((__raw_readb(GDROM_ALTSTATUS_REG) & 0x80) &&
 		(time_before(jiffies, timeout)))
 		cpu_relax();
@@ -156,8 +157,9 @@ static void gdrom_identifydevice(void *buf)
 	int c;
 	short *data = buf;
 	/* If the device won't clear it has probably
-	* been hit by a serious failure - but we'll
-	* try to return a sense key even so */
+	 * been hit by a serious failure - but we'll
+	 * try to return a sense key even so
+	 */
 	if (!gdrom_wait_clrbusy()) {
 		gdrom_getsense(NULL);
 		return;
@@ -228,6 +230,7 @@ static char gdrom_execute_diagnostic(void)
 static int gdrom_preparedisk_cmd(void)
 {
 	struct packet_command *spin_command;
+
 	spin_command = kzalloc(sizeof(struct packet_command), GFP_KERNEL);
 	if (!spin_command)
 		return -ENOMEM;
@@ -367,6 +370,7 @@ static int gdrom_drivestatus(struct cdrom_device_info *cd_info, int ignore)
 {
 	/* read the sense key */
 	char sense = __raw_readb(GDROM_ERROR_REG);
+
 	sense &= 0xF0;
 	if (sense == 0)
 		return CDS_DISC_OK;
@@ -388,6 +392,7 @@ static unsigned int gdrom_check_events(struct cdrom_device_info *cd_info,
 static int gdrom_hardreset(struct cdrom_device_info *cd_info)
 {
 	int count;
+
 	__raw_writel(0x1fffff, GDROM_RESET_REG);
 	for (count = 0xa0000000; count < 0xa0200000; count += 4)
 		__raw_readl(count);
@@ -395,7 +400,8 @@ static int gdrom_hardreset(struct cdrom_device_info *cd_info)
 }
 
 /* keep the function looking like the universal
- * CD Rom specification  - returning int */
+ * CD Rom specification  - returning int
+ */
 static int gdrom_packetcommand(struct cdrom_device_info *cd_info,
 	struct packet_command *command)
 {
@@ -423,7 +429,8 @@ static int gdrom_getsense(short *bufstring)
 	sense_command->cmd[4] = 10;
 	sense_command->buflen = 10;
 	/* even if something is pending try to get
-	* the sense key if possible */
+	 * the sense key if possible
+	 */
 	if (gd.pending && !gdrom_wait_clrbusy()) {
 		err = -EBUSY;
 		goto cleanup_sense_final;
@@ -501,7 +508,7 @@ static unsigned int gdrom_bdops_check_events(struct gendisk *disk,
 }
 
 static int gdrom_bdops_ioctl(struct block_device *bdev, fmode_t mode,
-	unsigned cmd, unsigned long arg)
+	unsigned int cmd, unsigned long arg)
 {
 	int ret;
 
@@ -693,12 +700,13 @@ static int gdrom_init_dma_mode(void)
 	if (!gdrom_wait_busy_sleeps())
 		return -EBUSY;
 	/* Memory protection setting for GDROM DMA
-	* Bits 31 - 16 security: 0x8843
-	* Bits 15 and 7 reserved (0)
-	* Bits 14 - 8 start of transfer range in 1 MB blocks OR'ed with 0x80
-	* Bits 6 - 0 end of transfer range in 1 MB blocks OR'ed with 0x80
-	* (0x40 | 0x80) = start range at 0x0C000000
-	* (0x7F | 0x80) = end range at 0x0FFFFFFF */
+	 * Bits 31 - 16 security: 0x8843
+	 * Bits 15 and 7 reserved (0)
+	 * Bits 14 - 8 start of transfer range in 1 MB blocks OR'ed with 0x80
+	 * Bits 6 - 0 end of transfer range in 1 MB blocks OR'ed with 0x80
+	 * (0x40 | 0x80) = start range at 0x0C000000
+	 * (0x7F | 0x80) = end range at 0x0FFFFFFF
+	 */
 	__raw_writel(0x8843407F, GDROM_DMA_ACCESS_CTRL_REG);
 	__raw_writel(9, GDROM_DMA_WAIT_REG); /* DMA word setting */
 	return 0;
@@ -846,6 +854,7 @@ static struct platform_driver gdrom_driver = {
 static int __init init_gdrom(void)
 {
 	int rc;
+
 	gd.toc = NULL;
 	rc = platform_driver_register(&gdrom_driver);
 	if (rc)
