@@ -322,9 +322,9 @@ static const struct hid_device_id hid_battery_quirks[] = {
 	{}
 };
 
-static unsigned find_battery_quirk(struct hid_device *hdev)
+static unsigned int find_battery_quirk(struct hid_device *hdev)
 {
-	unsigned quirks = 0;
+	unsigned int quirks = 0;
 	const struct hid_device_id *match;
 
 	match = hid_match_id(hdev, hid_battery_quirks);
@@ -428,11 +428,11 @@ static int hidinput_get_battery_property(struct power_supply *psy,
 	return ret;
 }
 
-static int hidinput_setup_battery(struct hid_device *dev, unsigned report_type, struct hid_field *field)
+static int hidinput_setup_battery(struct hid_device *dev, unsigned int report_type, struct hid_field *field)
 {
 	struct power_supply_desc *psy_desc;
 	struct power_supply_config psy_cfg = { .drv_data = dev, };
-	unsigned quirks;
+	unsigned int quirks;
 	s32 min, max;
 	int error;
 
@@ -541,7 +541,7 @@ static void hidinput_update_battery(struct hid_device *dev, int value)
 	}
 }
 #else  /* !CONFIG_HID_BATTERY_STRENGTH */
-static int hidinput_setup_battery(struct hid_device *dev, unsigned report_type,
+static int hidinput_setup_battery(struct hid_device *dev, unsigned int report_type,
 				  struct hid_field *field)
 {
 	return 0;
@@ -1300,7 +1300,7 @@ static void hidinput_handle_scroll(struct hid_usage *usage,
 void hidinput_hid_event(struct hid_device *hid, struct hid_field *field, struct hid_usage *usage, __s32 value)
 {
 	struct input_dev *input;
-	unsigned *quirks = &hid->quirks;
+	unsigned int *quirks = &hid->quirks;
 
 	if (!usage->type)
 		return;
