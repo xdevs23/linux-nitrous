@@ -2016,7 +2016,8 @@ void hidinput_disconnect(struct hid_device *hid)
 	/* led_work is spawned by input_dev callbacks, but doesn't access the
 	 * parent input_dev at all. Once all input devices are removed, we
 	 * know that led_work will never get restarted, so we can cancel it
-	 * synchronously and are safe. */
+	 * synchronously and are safe.
+	 */
 	cancel_work_sync(&hid->led_work);
 }
 EXPORT_SYMBOL_GPL(hidinput_disconnect);
