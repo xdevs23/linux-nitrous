@@ -751,17 +751,17 @@ static void hidinput_configure_usage(struct hid_input *hidinput, struct hid_fiel
 
 	case HID_UP_LED:
 		switch (usage->hid & 0xffff) {		      /* HID-Value:                   */
-		case 0x01:  map_led (LED_NUML);     break;    /*   "Num Lock"                 */
-		case 0x02:  map_led (LED_CAPSL);    break;    /*   "Caps Lock"                */
-		case 0x03:  map_led (LED_SCROLLL);  break;    /*   "Scroll Lock"              */
-		case 0x04:  map_led (LED_COMPOSE);  break;    /*   "Compose"                  */
-		case 0x05:  map_led (LED_KANA);     break;    /*   "Kana"                     */
-		case 0x27:  map_led (LED_SLEEP);    break;    /*   "Stand-By"                 */
-		case 0x4c:  map_led (LED_SUSPEND);  break;    /*   "System Suspend"           */
-		case 0x09:  map_led (LED_MUTE);     break;    /*   "Mute"                     */
-		case 0x4b:  map_led (LED_MISC);     break;    /*   "Generic Indicator"        */
-		case 0x19:  map_led (LED_MAIL);     break;    /*   "Message Waiting"          */
-		case 0x4d:  map_led (LED_CHARGING); break;    /*   "External Power Connected" */
+		case 0x01:  map_led(LED_NUML);     break;    /*   "Num Lock"                 */
+		case 0x02:  map_led(LED_CAPSL);    break;    /*   "Caps Lock"                */
+		case 0x03:  map_led(LED_SCROLLL);  break;    /*   "Scroll Lock"              */
+		case 0x04:  map_led(LED_COMPOSE);  break;    /*   "Compose"                  */
+		case 0x05:  map_led(LED_KANA);     break;    /*   "Kana"                     */
+		case 0x27:  map_led(LED_SLEEP);    break;    /*   "Stand-By"                 */
+		case 0x4c:  map_led(LED_SUSPEND);  break;    /*   "System Suspend"           */
+		case 0x09:  map_led(LED_MUTE);     break;    /*   "Mute"                     */
+		case 0x4b:  map_led(LED_MISC);     break;    /*   "Generic Indicator"        */
+		case 0x19:  map_led(LED_MAIL);     break;    /*   "Message Waiting"          */
+		case 0x4d:  map_led(LED_CHARGING); break;    /*   "External Power Connected" */
 
 		default: goto ignore;
 		}
@@ -1066,29 +1066,61 @@ static void hidinput_configure_usage(struct hid_input *hidinput, struct hid_fiel
 	case HID_UP_HPVENDOR:	/* Reported on a Dutch layout HP5308 */
 		set_bit(EV_REP, input->evbit);
 		switch (usage->hid & HID_USAGE) {
-		case 0x021: map_key_clear(KEY_PRINT);           break;
-		case 0x070: map_key_clear(KEY_HP);		break;
-		case 0x071: map_key_clear(KEY_CAMERA);		break;
-		case 0x072: map_key_clear(KEY_SOUND);		break;
-		case 0x073: map_key_clear(KEY_QUESTION);	break;
-		case 0x080: map_key_clear(KEY_EMAIL);		break;
-		case 0x081: map_key_clear(KEY_CHAT);		break;
-		case 0x082: map_key_clear(KEY_SEARCH);		break;
-		case 0x083: map_key_clear(KEY_CONNECT);	        break;
-		case 0x084: map_key_clear(KEY_FINANCE);		break;
-		case 0x085: map_key_clear(KEY_SPORT);		break;
-		case 0x086: map_key_clear(KEY_SHOP);	        break;
-		default:    goto ignore;
+		case 0x021:
+			map_key_clear(KEY_PRINT);
+			break;
+		case 0x070:
+			map_key_clear(KEY_HP);
+			break;
+		case 0x071:
+			map_key_clear(KEY_CAMERA);
+			break;
+		case 0x072:
+			map_key_clear(KEY_SOUND);
+			break;
+		case 0x073:
+			map_key_clear(KEY_QUESTION);
+			break;
+		case 0x080:
+			map_key_clear(KEY_EMAIL);
+			break;
+		case 0x081:
+			map_key_clear(KEY_CHAT);
+			break;
+		case 0x082:
+			map_key_clear(KEY_SEARCH);
+			break;
+		case 0x083:
+			map_key_clear(KEY_CONNECT);
+			break;
+		case 0x084:
+			map_key_clear(KEY_FINANCE);
+			break;
+		case 0x085:
+			map_key_clear(KEY_SPORT);
+			break;
+		case 0x086:
+			map_key_clear(KEY_SHOP);
+			break;
+		default:
+			goto ignore;
 		}
 		break;
 
 	case HID_UP_HPVENDOR2:
 		set_bit(EV_REP, input->evbit);
 		switch (usage->hid & HID_USAGE) {
-		case 0x001: map_key_clear(KEY_MICMUTE);		break;
-		case 0x003: map_key_clear(KEY_BRIGHTNESSDOWN);	break;
-		case 0x004: map_key_clear(KEY_BRIGHTNESSUP);	break;
-		default:    goto ignore;
+		case 0x001:
+			map_key_clear(KEY_MICMUTE);
+			break;
+		case 0x003:
+			map_key_clear(KEY_BRIGHTNESSDOWN);
+			break;
+		case 0x004:
+			map_key_clear(KEY_BRIGHTNESSUP);
+			break;
+		default:
+			goto ignore;
 		}
 		break;
 
@@ -1108,13 +1140,16 @@ static void hidinput_configure_usage(struct hid_input *hidinput, struct hid_fiel
 
 	case HID_UP_PID:
 		switch (usage->hid & HID_USAGE) {
-		case 0xa4: map_key_clear(BTN_DEAD);	break;
-		default: goto ignore;
+		case 0xa4:
+			map_key_clear(BTN_DEAD);
+			break;
+		default:
+			goto ignore;
 		}
 		break;
 
 	default:
-	unknown:
+unknown:
 		if (field->report_size == 1) {
 			if (field->report->type == HID_OUTPUT_REPORT) {
 				map_led(LED_MISC);
@@ -1383,7 +1418,7 @@ void hidinput_hid_event(struct hid_device *hid, struct hid_field *field, struct 
 	 * skip the keycode translation and only forward real events.
 	 */
 	if (!(field->flags & (HID_MAIN_ITEM_RELATIVE |
-	                      HID_MAIN_ITEM_BUFFERED_BYTE)) &&
+			      HID_MAIN_ITEM_BUFFERED_BYTE)) &&
 			      (field->flags & HID_MAIN_ITEM_VARIABLE) &&
 	    usage->usage_index < field->maxusage &&
 	    value == field->value[usage->usage_index])
