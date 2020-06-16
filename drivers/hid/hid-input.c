@@ -1185,7 +1185,8 @@ mapped:
 
 		if (field->application == HID_GD_GAMEPAD || field->application == HID_GD_JOYSTICK)
 			input_set_abs_params(input, usage->code, a, b, (b - a) >> 8, (b - a) >> 4);
-		else	input_set_abs_params(input, usage->code, a, b, 0, 0);
+		else
+			input_set_abs_params(input, usage->code, a, b, 0, 0);
 
 		input_abs_set_res(input, usage->code,
 				  hidinput_calc_abs_res(field, usage->code));
@@ -1198,6 +1199,7 @@ mapped:
 	if (usage->type == EV_ABS &&
 	    (usage->hat_min < usage->hat_max || usage->hat_dir)) {
 		int i;
+
 		for (i = usage->code; i < usage->code + 2 && i <= max; i++) {
 			input_set_abs_params(input, i, -1, 1, 0, 0);
 			set_bit(i, input->absbit);
@@ -1280,10 +1282,12 @@ void hidinput_hid_event(struct hid_device *hid, struct hid_field *field, struct 
 
 	if (usage->hat_min < usage->hat_max || usage->hat_dir) {
 		int hat_dir = usage->hat_dir;
+
 		if (!hat_dir)
 			hat_dir = (value - usage->hat_min) * 8 / (usage->hat_max - usage->hat_min + 1) + 1;
-		if (hat_dir < 0 || hat_dir > 8) hat_dir = 0;
-		input_event(input, usage->type, usage->code    , hid_hat_to_axis[hat_dir].x);
+		if (hat_dir < 0 || hat_dir > 8)
+			hat_dir = 0;
+		input_event(input, usage->type, usage->code, hid_hat_to_axis[hat_dir].x);
 		input_event(input, usage->type, usage->code + 1, hid_hat_to_axis[hat_dir].y);
 		return;
 	}
@@ -1306,11 +1310,12 @@ void hidinput_hid_event(struct hid_device *hid, struct hid_field *field, struct 
 	if (usage->hid == (HID_UP_DIGITIZER | 0x0030) && (*quirks & HID_QUIRK_NOTOUCH)) { /* Pressure */
 		int a = field->logical_minimum;
 		int b = field->logical_maximum;
+
 		input_event(input, EV_KEY, BTN_TOUCH, value > a + ((b - a) >> 3));
 	}
 
 	if (usage->hid == (HID_UP_PID | 0x83UL)) { /* Simultaneous Effects Max */
-		dbg_hid("Maximum Effects - %d\n",value);
+		dbg_hid("Maximum Effects - %d\n", value);
 		return;
 	}
 
@@ -1869,6 +1874,7 @@ int hidinput_connect(struct hid_device *hid, unsigned int force)
 	if (!force) {
 		for (i = 0; i < hid->maxcollection; i++) {
 			struct hid_collection *col = &hid->collection[i];
+
 			if (col->type == HID_COLLECTION_APPLICATION ||
 					col->type == HID_COLLECTION_PHYSICAL)
 				if (IS_INPUT_APPLICATION(col->usage))
