@@ -26,10 +26,12 @@
 #include <linux/dmi.h>
 #include <linux/hid.h>
 #include <linux/module.h>
+#include <linux/acpi.h>
 #include <linux/platform_data/x86/asus-wmi.h>
 #include <linux/input/mt.h>
 #include <linux/usb.h> /* For to_usb_interface for T100 touchpad intf check */
 #include <linux/power_supply.h>
+#include <../drivers/platform/x86/asus-wmi.h>
 
 #include "hid-ids.h"
 
@@ -308,10 +310,33 @@ static int asus_e1239t_event(struct asus_drvdata *drvdat, u8 *data, int size)
 	return 0;
 }
 
+/*
+ * This enables triggering events in asus-wmi
+ */
+static int asus_wmi_send_event(struct asus_drvdata *drvdat, u8 code)
+{
+	int err;
+	u32 retval;
+
+	err = asus_wmi_evaluate_method(ASUS_WMI_METHODID_DEVS,
+		ASUS_WMI_METHODID_NOTIF, code, &retval);
+	if (err) {
+		pr_warn("Failed to notify asus-wmi: %d\n", err);
+		return err;
+	}
+
+	if (retval != 0) {
+		pr_warn("Failed to notify asus-wmi (retval): 0x%x\n", retval);
+		return -EIO;
+	}
+
+	return 0;
+}
+
 static int asus_event(struct hid_device *hdev, struct hid_field *field,
 		      struct hid_usage *usage, __s32 value)
 {
-	if ((usage->hid & HID_USAGE_PAGE) == 0xff310000 &&
+	if ((usage->hid & HID_USAGE_PAGE) == HID_UP_ASUSVENDOR &&
 	    (usage->hid & HID_USAGE) != 0x00 &&
 	    (usage->hid & HID_USAGE) != 0xff && !usage->type) {
 		hid_warn(hdev, "Unmapped Asus vendor usagepage code 0x%02x\n",
@@ -343,6 +368,9 @@ static int asus_raw_event(struct hid_device *hdev,
 		if (report->id == FEATURE_KBD_LED_REPORT_ID1 ||
 				report->id == FEATURE_KBD_LED_REPORT_ID2) {
 			return -1;
+		/* Fn+F5 "fan" symbol, trigger WMI event to toggle next mode */
+		} else if (report->id == FEATURE_KBD_REPORT_ID && data[1] == 0xae) {
+			return asus_wmi_send_event(drvdata, 0xae);
 		/* Additional report filtering */
 		} else if (report->id == FEATURE_KBD_REPORT_ID) {
 			/*
@@ -354,6 +382,7 @@ static int asus_raw_event(struct hid_device *hdev,
 					data[1] == 0x8a || data[1] == 0x9e) {
 				return -1;
 			}
+
 		}
 	}
 
@@ -372,7 +401,7 @@ static int asus_kbd_set_report(struct hid_device *hdev, u8 *buf, size_t buf_size
 	/*
 	 * The report ID should be set from the incoming buffer due to LED and key
 	 * interfaces having different pages
-	*/
+	 */
 	ret = hid_hw_raw_request(hdev, buf[0], dmabuf,
 				 buf_size, HID_FEATURE_REPORT,
 				 HID_REQ_SET_REPORT);
@@ -534,11 +563,7 @@ static int asus_kbd_register_leds(struct hid_device *hdev)
 	unsigned char kbd_func;
 	int ret;
 
-	if (drvdata->quirks & QUIRK_ROG_NKEY_KEYBOARD) {
-		ret = rog_nkey_led_init(hdev);
-		if (ret < 0)
-			return ret;
-	} else {
+	if (drvdata->quirks & QUIRK_G752_KEYBOARD) {
 		/* Initialize keyboard */
 		ret = asus_kbd_init(hdev);
 		if (ret < 0)
@@ -568,6 +593,12 @@ static int asus_kbd_register_leds(struct hid_device *hdev)
 	drvdata->kbd_backlight->cdev.brightness_set = asus_kbd_backlight_set;
 	drvdata->kbd_backlight->cdev.brightness_get = asus_kbd_backlight_get;
 	INIT_WORK(&drvdata->kbd_backlight->work, asus_kbd_backlight_work);
+
+	if (drvdata->quirks & QUIRK_ROG_NKEY_KEYBOARD) {
+		ret = rog_nkey_led_init(hdev);
+		if (ret < 0)
+			return ret;
+	}
 
 	ret = devm_led_classdev_register(&hdev->dev, &drvdata->kbd_backlight->cdev);
 	if (ret < 0) {
@@ -838,7 +869,7 @@ static int asus_input_mapping(struct hid_device *hdev,
 		case 0x20: asus_map_key_clear(KEY_BRIGHTNESSUP);		break;
 		case 0x35: asus_map_key_clear(KEY_DISPLAY_OFF);		break;
 		case 0x6c: asus_map_key_clear(KEY_SLEEP);		break;
-		case 0x7c: asus_map_key_clear(KEY_MICMUTE);		break;
+		case 0x7c: asus_map_key_clear(KEY_F20);		break;
 		case 0x82: asus_map_key_clear(KEY_CAMERA);		break;
 		case 0x88: asus_map_key_clear(KEY_RFKILL);			break;
 		case 0xb5: asus_map_key_clear(KEY_CALC);			break;
@@ -851,28 +882,45 @@ static int asus_input_mapping(struct hid_device *hdev,
 		/* ROG key */
 		case 0x38: asus_map_key_clear(KEY_PROG1);		break;
 
-		/* Fn+C ASUS Splendid */
-		case 0xba: asus_map_key_clear(KEY_PROG2);		break;
-
-		/* Fn+Space Power4Gear Hybrid */
-		case 0x5c: asus_map_key_clear(KEY_PROG3);		break;
-
-		/* Fn+F5 "fan" symbol on FX503VD */
-		case 0x99: asus_map_key_clear(KEY_PROG4);		break;
-
 		/* Fn+F5 "fan" symbol on N-Key keyboard */
 		case 0xae: asus_map_key_clear(KEY_PROG4);		break;
 
-		/* Fn+Ret "Calc" symbol on N-Key keyboard */
-		case 0x92: asus_map_key_clear(KEY_CALC);		break;
-
-		/* Fn+Left Aura mode previous on N-Key keyboard */
-		case 0xb2: asus_map_key_clear(KEY_PROG2);		break;
-
-		/* Fn+Right Aura mode next on N-Key keyboard */
-		case 0xb3: asus_map_key_clear(KEY_PROG3);		break;
-
 		default:
+			if (drvdata->quirks & QUIRK_G752_KEYBOARD) {
+				switch (usage->hid & HID_USAGE) {
+				/* Fn+C ASUS Splendid */
+				case 0xba: asus_map_key_clear(KEY_PROG2);		break;
+
+				/* Fn+Space Power4Gear Hybrid */
+				case 0x5c: asus_map_key_clear(KEY_PROG3);		break;
+
+				/* Fn+F5 "fan" symbol on FX503VD */
+				case 0x99: asus_map_key_clear(KEY_PROG4);		break;
+
+				default:
+					return -1;
+				}
+				break;
+			}
+
+			/* device 0x1866, N-KEY Device specific */
+			if (drvdata->quirks & QUIRK_ROG_NKEY_KEYBOARD) {
+				switch (usage->hid & HID_USAGE) {
+				/* Fn+Ret "Calc" symbol on device 0x1866, N-KEY Device */
+				case 0x92: asus_map_key_clear(KEY_CALC);		break;
+
+				/* Fn+Left Aura mode previous */
+				case 0xb2: asus_map_key_clear(KEY_KBDILLUM_MODE_PREV);	break;
+
+				/* Fn+Right Aura mode next */
+				case 0xb3: asus_map_key_clear(KEY_KBDILLUM_MODE_NEXT);	break;
+
+				default:
+					return -1;
+				}
+				break;
+			}
+
 			/* ASUS lazily declares 256 usages, ignore the rest,
 			 * as some make the keyboard appear as a pointer device. */
 			return -1;
