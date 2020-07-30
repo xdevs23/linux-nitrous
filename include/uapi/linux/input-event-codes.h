@@ -777,6 +777,13 @@
 #define BTN_TRIGGER_HAPPY39		0x2e6
 #define BTN_TRIGGER_HAPPY40		0x2e7
 
+/*
+ * Some keyboards have function keys associated with
+ * changing the keyboard backlight modes, e.g, RGB patterns
+ */
+#define KEY_KBDILLUM_MODE_PREV	0x2ea
+#define KEY_KBDILLUM_MODE_NEXT	0x2eb
+
 /* We avoid low common keys in module aliases so they don't get huge. */
 #define KEY_MIN_INTERESTING	KEY_MUTE
 #define KEY_MAX			0x2ff
