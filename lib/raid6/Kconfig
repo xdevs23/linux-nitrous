@@ -24,7 +24,7 @@ choice
 	prompt "RAID6 Recovery Algorithm"
 	default RAID6_FORCE_INT
 	depends on RAID6_FORCE_ALGO
-	---help---
+	help
 		Select the RAID6 recovery algorithm to unconditionally use
 
 	config RAID6_FORCE_INT
