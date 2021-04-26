@@ -128,12 +128,6 @@ static inline bool kmem_cache_debug(struct kmem_cache *s)
 	return kmem_cache_debug_flags(s, SLAB_DEBUG_FLAGS);
 }
 
-static inline bool has_sanitize_verify(struct kmem_cache *s)
-{
-	return IS_ENABLED(CONFIG_SLAB_SANITIZE_VERIFY) &&
-	       slab_want_init_on_free(s);
-}
-
 void *fixup_red_left(struct kmem_cache *s, void *p)
 {
 	if (kmem_cache_debug_flags(s, SLAB_RED_ZONE))
@@ -449,55 +443,6 @@ static inline bool cmpxchg_double_slab(struct kmem_cache *s, struct page *page,
 	return false;
 }
 
-#if defined(CONFIG_SLUB_DEBUG) || defined(CONFIG_SLAB_CANARY)
-/*
- * See comment in calculate_sizes().
- */
-static inline bool freeptr_outside_object(struct kmem_cache *s)
-{
-	return s->offset >= s->inuse;
-}
-
-/*
- * Return offset of the end of info block which is inuse + free pointer if
- * not overlapping with object.
- */
-static inline unsigned int get_info_end(struct kmem_cache *s)
-{
-	if (freeptr_outside_object(s))
-		return s->inuse + sizeof(void *);
-	else
-		return s->inuse;
-}
-#endif
-
-#ifdef CONFIG_SLAB_CANARY
-static inline unsigned long *get_canary(struct kmem_cache *s, void *object)
-{
-	return object + get_info_end(s);
-}
-
-static inline unsigned long get_canary_value(const void *canary, unsigned long value)
-{
-	return (value ^ (unsigned long)canary) & CANARY_MASK;
-}
-
-static inline void set_canary(struct kmem_cache *s, void *object, unsigned long value)
-{
-	unsigned long *canary = get_canary(s, object);
-	*canary = get_canary_value(canary, value);
-}
-
-static inline void check_canary(struct kmem_cache *s, void *object, unsigned long value)
-{
-	unsigned long *canary = get_canary(s, object);
-	BUG_ON(*canary != get_canary_value(canary, value));
-}
-#else
-#define set_canary(s, object, value)
-#define check_canary(s, object, value)
-#endif
-
 #ifdef CONFIG_SLUB_DEBUG
 static unsigned long object_map[BITS_TO_LONGS(MAX_OBJS_PER_PAGE)];
 static DEFINE_SPINLOCK(object_map_lock);
@@ -609,15 +554,32 @@ static void print_section(char *level, char *text, u8 *addr,
 	metadata_access_disable();
 }
 
+/*
+ * See comment in calculate_sizes().
+ */
+static inline bool freeptr_outside_object(struct kmem_cache *s)
+{
+	return s->offset >= s->inuse;
+}
+
+/*
+ * Return offset of the end of info block which is inuse + free pointer if
+ * not overlapping with object.
+ */
+static inline unsigned int get_info_end(struct kmem_cache *s)
+{
+	if (freeptr_outside_object(s))
+		return s->inuse + sizeof(void *);
+	else
+		return s->inuse;
+}
+
 static struct track *get_track(struct kmem_cache *s, void *object,
 	enum track_item alloc)
 {
 	struct track *p;
 
 	p = object + get_info_end(s);
-
-	if (IS_ENABLED(CONFIG_SLAB_CANARY))
-		p = (void *)p + sizeof(void *);
 
 	return kasan_reset_tag(p + alloc);
 }
@@ -761,9 +723,6 @@ static void print_trailer(struct kmem_cache *s, struct page *page, u8 *p)
 
 	off = get_info_end(s);
 
-	if (IS_ENABLED(CONFIG_SLAB_CANARY))
-		off += sizeof(void *);
-
 	if (s->flags & SLAB_STORE_USER)
 		off += 2 * sizeof(struct track);
 
@@ -872,9 +831,8 @@ static int check_bytes_and_report(struct kmem_cache *s, struct page *page,
  * 	Meta data starts here.
  *
  * 	A. Free pointer (if we cannot overwrite object on free)
- * 	B. Canary for SLAB_CANARY
- * 	C. Tracking data for SLAB_STORE_USER
- * 	D. Padding to reach required alignment boundary or at mininum
+ * 	B. Tracking data for SLAB_STORE_USER
+ * 	C. Padding to reach required alignment boundary or at mininum
  * 		one word if debugging is on to be able to detect writes
  * 		before the word boundary.
  *
@@ -891,9 +849,6 @@ static int check_bytes_and_report(struct kmem_cache *s, struct page *page,
 static int check_pad_bytes(struct kmem_cache *s, struct page *page, u8 *p)
 {
 	unsigned long off = get_info_end(s);	/* The end of info */
-
-	if (IS_ENABLED(CONFIG_SLAB_CANARY))
-		off += sizeof(void *);
 
 	if (s->flags & SLAB_STORE_USER)
 		/* We also have user information there */
@@ -1629,8 +1584,6 @@ static inline bool slab_free_freelist_hook(struct kmem_cache *s,
 		object = next;
 		next = get_freepointer(s, object);
 
-		check_canary(s, object, s->random_active);
-
 		if (slab_want_init_on_free(s)) {
 			/*
 			 * Clear the object and the metadata, but don't touch
@@ -1641,12 +1594,8 @@ static inline bool slab_free_freelist_hook(struct kmem_cache *s,
 							   : 0;
 			memset((char *)kasan_reset_tag(object) + s->inuse, 0,
 			       s->size - s->inuse - rsize);
-			if (!IS_ENABLED(CONFIG_SLAB_SANITIZE_VERIFY) && s->ctor)
-				s->ctor(object);
+
 		}
-
-		set_canary(s, object, s->random_inactive);
-
 		/* If object's reuse doesn't have to be delayed */
 		if (!slab_free_hook(s, object)) {
 			/* Move object to the new freelist */
@@ -1654,18 +1603,6 @@ static inline bool slab_free_freelist_hook(struct kmem_cache *s,
 			*head = object;
 			if (!*tail)
 				*tail = object;
-		} else if (slab_want_init_on_free(s) && s->ctor) {
-			/* Objects that are put into quarantine by KASAN will
-			 * still undergo free_consistency_checks() and thus
-			 * need to show a valid freepointer to check_object().
-			 *
-			 * Note that doing this for all caches (not just ctor
-			 * ones, which have s->offset >= object_size)) causes a
-			 * GPF, due to KASAN poisoning and the way
-			 * set_freepointer() eventually dereferences the
-			 * freepointer.
-			 */
-			set_freepointer(s, object, NULL);
 		}
 	} while (object != old_tail);
 
@@ -1679,9 +1616,8 @@ static void *setup_object(struct kmem_cache *s, struct page *page,
 				void *object)
 {
 	setup_object_debug(s, page, object);
-	set_canary(s, object, s->random_inactive);
 	object = kasan_init_slab_obj(s, object);
-	if (unlikely(s->ctor) && !has_sanitize_verify(s)) {
+	if (unlikely(s->ctor)) {
 		kasan_unpoison_object_data(s, object);
 		s->ctor(object);
 		kasan_poison_object_data(s, object);
@@ -2964,30 +2900,10 @@ redo:
 
 	maybe_wipe_obj_freeptr(s, object);
 
-	if (has_sanitize_verify(s) && object) {
-		/* KASAN hasn't unpoisoned the object yet (this is done in the
-		 * post-alloc hook), so let's do it temporarily.
-		 */
-		kasan_unpoison_object_data(s, object);
-		BUG_ON(memchr_inv(object, 0, s->object_size));
-		if (s->ctor)
-			s->ctor(object);
-		kasan_poison_object_data(s, object);
-	} else if (unlikely(slab_want_init_on_alloc(gfpflags, s)) && object) {
+	if (unlikely(slab_want_init_on_alloc(gfpflags, s)) && object)
 		memset(kasan_reset_tag(object), 0, s->object_size);
-		if (s->ctor) {
-			kasan_unpoison_object_data(s, object);
-			s->ctor(object);
-			kasan_poison_object_data(s, object);
-		}
-	}
 
 out:
-	if (object) {
-		check_canary(s, object, s->random_inactive);
-		set_canary(s, object, s->random_active);
-	}
-
 	slab_post_alloc_hook(s, objcg, gfpflags, 1, &object);
 
 	return object;
@@ -3385,7 +3301,7 @@ int kmem_cache_alloc_bulk(struct kmem_cache *s, gfp_t flags, size_t size,
 			  void **p)
 {
 	struct kmem_cache_cpu *c;
-	int i, k;
+	int i;
 	struct obj_cgroup *objcg = NULL;
 
 	/* memcg and kmem_cache debug support */
@@ -3441,35 +3357,11 @@ int kmem_cache_alloc_bulk(struct kmem_cache *s, gfp_t flags, size_t size,
 	local_irq_enable();
 
 	/* Clear memory outside IRQ disabled fastpath loop */
-	if (has_sanitize_verify(s)) {
+	if (unlikely(slab_want_init_on_alloc(flags, s))) {
 		int j;
 
-		for (j = 0; j < i; j++) {
-			/* KASAN hasn't unpoisoned the object yet (this is done
-			 * in the post-alloc hook), so let's do it temporarily.
-			 */
-			kasan_unpoison_object_data(s, p[j]);
-			BUG_ON(memchr_inv(p[j], 0, s->object_size));
-			if (s->ctor)
-				s->ctor(p[j]);
-			kasan_poison_object_data(s, p[j]);
-		}
-	} else if (unlikely(slab_want_init_on_alloc(flags, s))) {
-		int j;
-
-		for (j = 0; j < i; j++) {
+		for (j = 0; j < i; j++)
 			memset(kasan_reset_tag(p[j]), 0, s->object_size);
-			if (s->ctor) {
-				kasan_unpoison_object_data(s, p[j]);
-				s->ctor(p[j]);
-				kasan_poison_object_data(s, p[j]);
-			}
-		}
-	}
-
-	for (k = 0; k < i; k++) {
-		check_canary(s, p[k], s->random_inactive);
-		set_canary(s, p[k], s->random_active);
 	}
 
 	/* memcg and kmem_cache debug support */
@@ -3687,7 +3579,6 @@ static void early_kmem_cache_node_alloc(int node)
 	init_object(kmem_cache_node, n, SLUB_RED_ACTIVE);
 	init_tracking(kmem_cache_node, n);
 #endif
-	set_canary(kmem_cache_node, n, kmem_cache_node->random_active);
 	n = kasan_slab_alloc(kmem_cache_node, n, GFP_KERNEL);
 	page->freelist = get_freepointer(kmem_cache_node, n);
 	page->inuse = 1;
@@ -3867,9 +3758,6 @@ static int calculate_sizes(struct kmem_cache *s, int forced_order)
 		s->offset = ALIGN(freepointer_area / 2, sizeof(void *));
 	}
 
-	if (IS_ENABLED(CONFIG_SLAB_CANARY))
-		size += sizeof(void *);
-
 #ifdef CONFIG_SLUB_DEBUG
 	if (flags & SLAB_STORE_USER)
 		/*
@@ -3942,10 +3830,6 @@ static int kmem_cache_open(struct kmem_cache *s, slab_flags_t flags)
 	s->flags = kmem_cache_flags(s->size, flags, s->name);
 #ifdef CONFIG_SLAB_FREELIST_HARDENED
 	s->random = get_random_long();
-#endif
-#ifdef CONFIG_SLAB_CANARY
-	s->random_active = get_random_long();
-	s->random_inactive = get_random_long();
 #endif
 
 	if (!calculate_sizes(s, -1))
@@ -4264,8 +4148,6 @@ void __check_heap_object(const void *ptr, unsigned long n, struct page *page,
 		offset -= s->red_left_pad;
 	}
 
-	check_canary(s, (void *)ptr - offset, s->random_active);
-
 	/* Allow address range falling entirely within usercopy region. */
 	if (offset >= s->useroffset &&
 	    offset - s->useroffset <= s->usersize &&
@@ -4299,11 +4181,7 @@ size_t __ksize(const void *object)
 	page = virt_to_head_page(object);
 
 	if (unlikely(!PageSlab(page))) {
-#ifdef CONFIG_BUG_ON_DATA_CORRUPTION
-		BUG_ON(!PageCompound(page));
-#else
 		WARN_ON(!PageCompound(page));
-#endif
 		return page_size(page);
 	}
 

@@ -455,15 +455,10 @@ static inline struct kmem_cache *cache_from_obj(struct kmem_cache *s, void *x)
 		return s;
 
 	cachep = virt_to_cache(x);
-	if (cachep && cachep != s) {
-#ifdef CONFIG_BUG_ON_DATA_CORRUPTION
-		BUG();
-#else
-		WARN(1, "%s: Wrong slab cache. %s but object is from %s\n",
-			__func__, s->name, cachep->name);
-#endif
+	if (WARN(cachep && cachep != s,
+		  "%s: Wrong slab cache. %s but object is from %s\n",
+		  __func__, s->name, cachep->name))
 		print_tracking(cachep, x);
-	}
 	return cachep;
 }
 
@@ -488,7 +483,7 @@ static inline size_t slab_ksize(const struct kmem_cache *s)
 	 * back there or track user information then we can
 	 * only use the space before that information.
 	 */
-	if ((s->flags & (SLAB_TYPESAFE_BY_RCU | SLAB_STORE_USER)) || IS_ENABLED(CONFIG_SLAB_CANARY))
+	if (s->flags & (SLAB_TYPESAFE_BY_RCU | SLAB_STORE_USER))
 		return s->inuse;
 	/*
 	 * Else we can use all the padding etc for the allocation
@@ -611,10 +606,8 @@ static inline void cache_random_seq_destroy(struct kmem_cache *cachep) { }
 static inline bool slab_want_init_on_alloc(gfp_t flags, struct kmem_cache *c)
 {
 	if (static_branch_unlikely(&init_on_alloc)) {
-#ifndef CONFIG_SLUB
 		if (c->ctor)
 			return false;
-#endif
 		if (c->flags & (SLAB_TYPESAFE_BY_RCU | SLAB_POISON))
 			return flags & __GFP_ZERO;
 		return true;
@@ -624,15 +617,9 @@ static inline bool slab_want_init_on_alloc(gfp_t flags, struct kmem_cache *c)
 
 static inline bool slab_want_init_on_free(struct kmem_cache *c)
 {
-	if (static_branch_unlikely(&init_on_free)) {
-#ifndef CONFIG_SLUB
-		if (c->ctor)
-			return false;
-#endif
-		if (c->flags & (SLAB_TYPESAFE_BY_RCU | SLAB_POISON))
-			return false;
-		return true;
-	}
+	if (static_branch_unlikely(&init_on_free))
+		return !(c->ctor ||
+			 (c->flags & (SLAB_TYPESAFE_BY_RCU | SLAB_POISON)));
 	return false;
 }
 

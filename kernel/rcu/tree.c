@@ -2802,7 +2802,7 @@ static __latent_entropy void rcu_core(void)
 		queue_work_on(rdp->cpu, rcu_gp_wq, &rdp->strict_work);
 }
 
-static void rcu_core_si(void)
+static void rcu_core_si(struct softirq_action *h)
 {
 	rcu_core();
 }

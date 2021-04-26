@@ -72,7 +72,6 @@
 #include <linux/padata.h>
 #include <linux/khugepaged.h>
 #include <linux/buffer_head.h>
-#include <linux/random.h>
 
 #include <asm/sections.h>
 #include <asm/tlbflush.h>
@@ -140,15 +139,6 @@ struct pcpu_drain {
 };
 static DEFINE_MUTEX(pcpu_drain_mutex);
 static DEFINE_PER_CPU(struct pcpu_drain, pcpu_drain);
-
-bool __meminitdata extra_latent_entropy;
-
-static int __init setup_extra_latent_entropy(char *str)
-{
-	extra_latent_entropy = true;
-	return 0;
-}
-early_param("extra_latent_entropy", setup_extra_latent_entropy);
 
 #ifdef CONFIG_GCC_PLUGIN_LATENT_ENTROPY
 volatile unsigned long latent_entropy __latent_entropy;
@@ -1547,25 +1537,6 @@ static void __free_pages_ok(struct page *page, unsigned int order,
 	local_irq_restore(flags);
 }
 
-static void __init __gather_extra_latent_entropy(struct page *page,
-						 unsigned int nr_pages)
-{
-	if (extra_latent_entropy && !PageHighMem(page) && page_to_pfn(page) < 0x100000) {
-		unsigned long hash = 0;
-		size_t index, end = PAGE_SIZE * nr_pages / sizeof hash;
-		const unsigned long *data = lowmem_page_address(page);
-
-		for (index = 0; index < end; index++)
-			hash ^= hash + data[index];
-#ifdef CONFIG_GCC_PLUGIN_LATENT_ENTROPY
-		latent_entropy ^= hash;
-		add_device_randomness((const void *)&latent_entropy, sizeof(latent_entropy));
-#else
-		add_device_randomness((const void *)&hash, sizeof(hash));
-#endif
-	}
-}
-
 void __free_pages_core(struct page *page, unsigned int order)
 {
 	unsigned int nr_pages = 1 << order;
@@ -1585,6 +1556,7 @@ void __free_pages_core(struct page *page, unsigned int order)
 	}
 	__ClearPageReserved(p);
 	set_page_count(p, 0);
+
 	atomic_long_add(nr_pages, &page_zone(page)->managed_pages);
 
 	/*
@@ -1651,7 +1623,6 @@ void __init memblock_free_pages(struct page *page, unsigned long pfn,
 {
 	if (early_page_uninitialised(pfn))
 		return;
-	__gather_extra_latent_entropy(page, 1 << order);
 	__free_pages_core(page, order);
 }
 
@@ -1743,7 +1714,6 @@ static void __init deferred_free_range(unsigned long pfn,
 	if (nr_pages == pageblock_nr_pages &&
 	    (pfn & (pageblock_nr_pages - 1)) == 0) {
 		set_pageblock_migratetype(page, MIGRATE_MOVABLE);
-		__gather_extra_latent_entropy(page, 1 << pageblock_order);
 		__free_pages_core(page, pageblock_order);
 		return;
 	}
@@ -1751,7 +1721,6 @@ static void __init deferred_free_range(unsigned long pfn,
 	for (i = 0; i < nr_pages; i++, page++, pfn++) {
 		if ((pfn & (pageblock_nr_pages - 1)) == 0)
 			set_pageblock_migratetype(page, MIGRATE_MOVABLE);
-		__gather_extra_latent_entropy(page, 1);
 		__free_pages_core(page, 0);
 	}
 }
@@ -2320,12 +2289,6 @@ inline void post_alloc_hook(struct page *page, unsigned int order,
 	kasan_alloc_pages(page, order);
 	kernel_unpoison_pages(page, 1 << order);
 	set_page_owner(page, order, gfp_flags);
-
-	if (IS_ENABLED(CONFIG_PAGE_SANITIZE_VERIFY) && want_init_on_free()) {
-		int i;
-		for (i = 0; i < (1 << order); i++)
-			verify_zero_highpage(page + i);
-	}
 
 	if (!want_init_on_free() && want_init_on_alloc(gfp_flags))
 		kernel_init_free_pages(page, 1 << order);

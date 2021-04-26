@@ -99,8 +99,6 @@ static void __put_single_page(struct page *page)
 
 static void __put_compound_page(struct page *page)
 {
-	compound_page_dtor *dtor;
-
 	/*
 	 * __page_cache_release() is supposed to be called for thp, not for
 	 * hugetlb. This is because hugetlb page does never have PageLRU set
@@ -109,15 +107,7 @@ static void __put_compound_page(struct page *page)
 	 */
 	if (!PageHuge(page))
 		__page_cache_release(page);
-	dtor = get_compound_page_dtor(page);
-	if (!PageHuge(page))
-		BUG_ON(dtor != free_compound_page
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-			&& dtor != free_transhuge_page
-#endif
-		);
-
-	(*dtor)(page);
+	destroy_compound_page(page);
 }
 
 void __put_page(struct page *page)
