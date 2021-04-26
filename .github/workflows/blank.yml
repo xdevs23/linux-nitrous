@@ -1,0 +1,45 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Git Clone Action
+        # You may pin to the exact commit or the version.
+        # uses: sudosubin-ppas/git-clone-action@ab632d2f68902e7ce74767208252bdb8d5378062
+        uses: sudosubin-ppas/git-clone-action@v1.0.0
+        with:
+          # Repository owner and name. Ex: sudosubin-ppas/git-clone-action
+          repository: linux-nitrous.git
+          # Git host platform. Ex: github, gitlab, bitbucket, gitee, or else (git.suckless.org, ...)
+          platform: aur.archlinux.org
+          # Git branch or tag to checkout.
+          ref: master
+          # Relative path from current directory, where to clone.
+          path: linux-nitrous
+    
+      - name: Arch makepkg
+        # You may pin to the exact commit or the version.
+        # uses: py7hon/arch-makepkg@9891e6a52a6f5e2d1729f650198628a19ae261b4
+        uses: py7hon/arch-makepkg@v0.0.2
+        with:
+          # Path to directory containing PKGBUILD file
+          path: linux-nitrous
