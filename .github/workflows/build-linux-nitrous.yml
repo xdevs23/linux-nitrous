@@ -28,7 +28,7 @@ jobs:
         uses: sudosubin-ppas/git-clone-action@v1.0.0
         with:
           # Repository owner and name. Ex: sudosubin-ppas/git-clone-action
-          repository: linux-nitrous.git
+          repository: linux-nitrous
           # Git host platform. Ex: github, gitlab, bitbucket, gitee, or else (git.suckless.org, ...)
           platform: aur.archlinux.org
           # Git branch or tag to checkout.
