@@ -51,16 +51,16 @@ config DRBD_FAULT_INJECTION
 	  /sys/module/drbd/parameters/
 
 	  enable_faults: bitmask of...
-	  1	meta data write
-	  2               read
-	  4	resync data write
-	  8	            read
-	  16	data write
-	  32	data read
-	  64	read ahead
-	  128	kmalloc of bitmap
-	  256	allocation of peer_requests
-	  512	insert data corruption on receiving side
+	  1       meta data write
+	  2       meta data read
+	  4       resync data write
+	  8       resync data read
+	  16      data write
+	  32      data read
+	  64      read ahead
+	  128     kmalloc of bitmap
+	  256     allocation of peer_requests
+	  512     insert data corruption on receiving side
 
 	  fault_devs: bitmask of minor numbers
 	  fault_rate: frequency in percent
