@@ -1,7 +1,7 @@
 # Linux Nitrous Build Repo
 
 This software is provided on an "as-is" basis without any kind of warranty or guarantees.
-The use of this software or any of its components falls under your responsibility and I cannot be hold liable for any damages that arose from the use of this software.
+The use of this software or any of its components falls under your responsibility and I cannot be held liable for any damages that arise from the use of this software.
 
 ## Copying
 
