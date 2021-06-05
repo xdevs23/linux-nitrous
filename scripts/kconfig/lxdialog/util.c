@@ -90,44 +90,44 @@ static void set_classic_theme(void)
 
 static void set_blackbg_theme(void)
 {
-	DLG_COLOR(screen, COLOR_RED,   COLOR_BLACK, true);
+	DLG_COLOR(screen, COLOR_BLUE,  COLOR_BLACK, true);
 	DLG_COLOR(shadow, COLOR_BLACK, COLOR_BLACK, false);
 	DLG_COLOR(dialog, COLOR_WHITE, COLOR_BLACK, false);
-	DLG_COLOR(title,  COLOR_RED,   COLOR_BLACK, false);
+	DLG_COLOR(title,  COLOR_BLUE,  COLOR_BLACK, false);
 	DLG_COLOR(border, COLOR_BLACK, COLOR_BLACK, true);
 
-	DLG_COLOR(button_active,         COLOR_YELLOW, COLOR_RED,   false);
-	DLG_COLOR(button_inactive,       COLOR_YELLOW, COLOR_BLACK, false);
-	DLG_COLOR(button_key_active,     COLOR_YELLOW, COLOR_RED,   true);
-	DLG_COLOR(button_key_inactive,   COLOR_RED,    COLOR_BLACK, false);
-	DLG_COLOR(button_label_active,   COLOR_WHITE,  COLOR_RED,   false);
-	DLG_COLOR(button_label_inactive, COLOR_BLACK,  COLOR_BLACK, true);
+	DLG_COLOR(button_active,         COLOR_WHITE,  COLOR_BLUE, true);
+	DLG_COLOR(button_inactive,       COLOR_BLACK,  COLOR_BLACK, false);
+	DLG_COLOR(button_key_active,     COLOR_WHITE,  COLOR_BLUE, true);
+	DLG_COLOR(button_key_inactive,   COLOR_WHITE,  COLOR_BLACK, false);
+	DLG_COLOR(button_label_active,   COLOR_WHITE,  COLOR_BLUE, true);
+	DLG_COLOR(button_label_inactive, COLOR_WHITE,  COLOR_BLACK, false);
 
-	DLG_COLOR(inputbox,         COLOR_YELLOW, COLOR_BLACK, false);
-	DLG_COLOR(inputbox_border,  COLOR_YELLOW, COLOR_BLACK, false);
+	DLG_COLOR(inputbox,         COLOR_CYAN, COLOR_BLACK, false);
+	DLG_COLOR(inputbox_border,  COLOR_BLUE, COLOR_BLACK, false);
 
-	DLG_COLOR(searchbox,        COLOR_YELLOW, COLOR_BLACK, false);
-	DLG_COLOR(searchbox_title,  COLOR_YELLOW, COLOR_BLACK, true);
-	DLG_COLOR(searchbox_border, COLOR_BLACK,  COLOR_BLACK, true);
+	DLG_COLOR(searchbox,        COLOR_CYAN, COLOR_BLACK, false);
+	DLG_COLOR(searchbox_title,  COLOR_BLUE, COLOR_BLACK, true);
+	DLG_COLOR(searchbox_border, COLOR_BLUE, COLOR_BLACK, true);
 
-	DLG_COLOR(position_indicator, COLOR_RED, COLOR_BLACK,  false);
+	DLG_COLOR(position_indicator, COLOR_BLUE, COLOR_WHITE, false);
 
-	DLG_COLOR(menubox,          COLOR_YELLOW, COLOR_BLACK, false);
+	DLG_COLOR(menubox,          COLOR_CYAN,   COLOR_BLACK, false);
 	DLG_COLOR(menubox_border,   COLOR_BLACK,  COLOR_BLACK, true);
 
 	DLG_COLOR(item,             COLOR_WHITE, COLOR_BLACK, false);
-	DLG_COLOR(item_selected,    COLOR_WHITE, COLOR_RED,   false);
+	DLG_COLOR(item_selected,    COLOR_WHITE, COLOR_BLUE,  true);
 
-	DLG_COLOR(tag,              COLOR_RED,    COLOR_BLACK, false);
-	DLG_COLOR(tag_selected,     COLOR_YELLOW, COLOR_RED,   true);
-	DLG_COLOR(tag_key,          COLOR_RED,    COLOR_BLACK, false);
-	DLG_COLOR(tag_key_selected, COLOR_YELLOW, COLOR_RED,   true);
+	DLG_COLOR(tag,              COLOR_BLUE,    COLOR_BLACK, true);
+	DLG_COLOR(tag_selected,     COLOR_WHITE,   COLOR_BLUE,  false);
+	DLG_COLOR(tag_key,          COLOR_BLUE,    COLOR_BLACK, false);
+	DLG_COLOR(tag_key_selected, COLOR_WHITE,   COLOR_BLUE, true);
 
-	DLG_COLOR(check,            COLOR_YELLOW, COLOR_BLACK, false);
-	DLG_COLOR(check_selected,   COLOR_YELLOW, COLOR_RED,   true);
+	DLG_COLOR(check,            COLOR_WHITE,  COLOR_BLACK, false);
+	DLG_COLOR(check_selected,   COLOR_BLUE,   COLOR_WHITE, true);
 
-	DLG_COLOR(uarrow, COLOR_RED, COLOR_BLACK, false);
-	DLG_COLOR(darrow, COLOR_RED, COLOR_BLACK, false);
+	DLG_COLOR(uarrow, COLOR_BLUE, COLOR_BLACK, false);
+	DLG_COLOR(darrow, COLOR_BLUE, COLOR_BLACK, false);
 }
 
 static void set_bluetitle_theme(void)
