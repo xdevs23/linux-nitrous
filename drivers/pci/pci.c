@@ -51,6 +51,9 @@ unsigned int pci_pm_d3hot_delay;
 
 static void pci_pme_list_scan(struct work_struct *work);
 
+static void pci_dev_save_and_disable(struct pci_dev *dev);
+static void pci_dev_restore(struct pci_dev *dev);
+
 static LIST_HEAD(pci_pme_list);
 static DEFINE_MUTEX(pci_pme_list_mutex);
 static DECLARE_DELAYED_WORK(pci_pme_work, pci_pme_list_scan);
@@ -1668,15 +1671,7 @@ static void pci_restore_config_space(struct pci_dev *pdev)
 		pci_restore_config_space_range(pdev, 4, 9, 10, false);
 		pci_restore_config_space_range(pdev, 0, 3, 0, false);
 	} else if (pdev->hdr_type == PCI_HEADER_TYPE_BRIDGE) {
-		pci_restore_config_space_range(pdev, 12, 15, 0, false);
-
-		/*
-		 * Force rewriting of prefetch registers to avoid S3 resume
-		 * issues on Intel PCI bridges that occur when these
-		 * registers are not explicitly written.
-		 */
-		pci_restore_config_space_range(pdev, 9, 11, 0, true);
-		pci_restore_config_space_range(pdev, 0, 8, 0, false);
+		pci_restore_config_space_range(pdev, 0, 15, 0, true);
 	} else {
 		pci_restore_config_space_range(pdev, 0, 15, 0, false);
 	}
@@ -5016,6 +5011,8 @@ void pci_reset_secondary_bus(struct pci_dev *dev)
 {
 	u16 ctrl;
 
+	pci_dev_save_and_disable(dev);
+
 	pci_read_config_word(dev, PCI_BRIDGE_CONTROL, &ctrl);
 	ctrl |= PCI_BRIDGE_CTL_BUS_RESET;
 	pci_write_config_word(dev, PCI_BRIDGE_CONTROL, ctrl);
@@ -5028,6 +5025,8 @@ void pci_reset_secondary_bus(struct pci_dev *dev)
 
 	ctrl &= ~PCI_BRIDGE_CTL_BUS_RESET;
 	pci_write_config_word(dev, PCI_BRIDGE_CONTROL, ctrl);
+
+	pci_dev_restore(dev);
 
 	/*
 	 * Trhfa for conventional PCI is 2^25 clock cycles.
