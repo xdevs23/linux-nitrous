@@ -846,7 +846,7 @@ static char *default_pointer(char *buf, char *end, const void *ptr,
 	return ptr_to_id(buf, end, ptr, spec);
 }
 
-int kptr_restrict __read_mostly;
+int kptr_restrict __read_mostly = CONFIG_KPTR_RESTRICT;
 
 static noinline_for_stack
 char *restricted_pointer(char *buf, char *end, const void *ptr,
