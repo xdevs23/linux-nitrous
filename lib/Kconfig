@@ -747,6 +747,10 @@ config LWQ_TEST
 	help
           Run boot-time test of light-weight queuing.
 
+config KPTR_RESTRICT
+	int "Kernel Pointer Restriction (lib/vsprintf.c kptr_restrict)"
+	default 0
+
 endmenu
 
 config GENERIC_IOREMAP
