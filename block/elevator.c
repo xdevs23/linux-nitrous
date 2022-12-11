@@ -564,8 +564,8 @@ static inline bool elv_support_iosched(struct request_queue *q)
 }
 
 /*
- * For single queue devices, default to using mq-deadline. If we have multiple
- * queues or mq-deadline is not available, default to "none".
+ * For single queue devices, default to using bfq/kyber/mq-deadline. If we have multiple
+ * queues or bfq/kyber/mq-deadline is not available, default to "none".
  */
 static struct elevator_type *elevator_get_default(struct request_queue *q)
 {
@@ -576,7 +576,13 @@ static struct elevator_type *elevator_get_default(struct request_queue *q)
 	    !blk_mq_is_shared_tags(q->tag_set->flags))
 		return NULL;
 
+#if defined(CONFIG_MQ_IOSCHED_KYBER)
+	return elevator_find_get(q, "kyber");
+#elif defined(CONFIG_MQ_IOSCHED_BFQ)
+	return elevator_find_get(q, "bfq");
+#else
 	return elevator_find_get(q, "mq-deadline");
+#endif
 }
 
 /*
