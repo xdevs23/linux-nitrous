@@ -149,7 +149,7 @@ static int __init crypto_kdf108_init(void)
 
 static void __exit crypto_kdf108_exit(void) { }
 
-module_init(crypto_kdf108_init);
+late_initcall(crypto_kdf108_init);
 module_exit(crypto_kdf108_exit);
 
 MODULE_LICENSE("GPL v2");
