@@ -630,7 +630,6 @@ static struct wmi_driver casper_drv = {
 	.id_table = casper_wmi_id_table,
 	.probe = casper_wmi_probe,
 	.remove = &casper_wmi_remove,
-	.no_singleton = true,
 };
 
 module_wmi_driver(casper_drv);
