@@ -15,6 +15,7 @@ let fhs = pkgs.buildFHSUserEnv {
       lld
       llvm
       libgcc
+      ncurses ncurses.dev
       openssl openssl.dev
       perl
       pkgconf
