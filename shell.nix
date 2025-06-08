@@ -6,14 +6,14 @@ let fhs = pkgs.buildFHSEnv {
       bc
       bison
       ccache
-      clang
+      llvmPackages_20.clang-unwrapped
       elfutils elfutils.dev
       flex
       git
       gnumake
       libelf
-      lld
-      llvm
+      lld_20
+      llvm_20
       libgcc
       ncurses ncurses.dev
       openssl openssl.dev
