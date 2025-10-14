@@ -133,7 +133,7 @@
 
               src = fetchurl {
                 url = "https://gitlab.com/xdevs23/linux-nitrous/-/archive/v${version}/linux-nitrous-v${version}.tar.gz";
-                hash = "sha256-Xzm+cD5VkZI80O8zVYkSBdtQ//F/aGwzFghHjp+04to=";
+                hash = "sha256-b2s6n/ChRUOP8ER5YQe1+tZBLKAQf8vqFuL4yRIcqbo=";
               };
 
               structuredExtraConfig = with lib.kernel; {
