@@ -96,7 +96,7 @@
   config = {
     boot.kernelPackages = lib.mkOverride 80 (
       let
-        version = "6.17.2-6";
+        version = "6.17.1-1";
         linuxVersion = lib.head (lib.splitString "-" version);
         suffix = "nitrous";
         llvm = pkgs.unstable.llvmPackages_20;
@@ -133,7 +133,7 @@
 
               src = fetchurl {
                 url = "https://gitlab.com/xdevs23/linux-nitrous/-/archive/v${version}/linux-nitrous-v${version}.tar.gz";
-                hash = "sha256-PCO5hss5gWdNaX04ARv86IMhcsf2WFWzOVpCArV0wLo=";
+                hash = "sha256-Xzm+cD5VkZI80O8zVYkSBdtQ//F/aGwzFghHjp+04to=";
               };
 
               structuredExtraConfig = with lib.kernel; {
@@ -184,7 +184,7 @@
                   owner = "amkillam";
                   repo = "ryzen_smu";
                   rev = "172c316f53ac8f066afd7cb9e1da517084273368";
-                  hash = "sha256-PCO5hss5gWdNaX04ARv86IMhcsf2WFWzOVpCArV0wLo=";
+                  hash = "sha256-U2UMWY7XgLXOpNgl2OsFBRvZSC4/qLa9rzJxFOpZ830=";
                 };
                 monitor-cpu = llvm.stdenv.mkDerivation {
                   pname = "monitor-cpu";
