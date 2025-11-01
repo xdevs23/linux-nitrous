@@ -99,7 +99,7 @@
         version = "6.17.1-1";
         linuxVersion = lib.head (lib.splitString "-" version);
         suffix = "nitrous";
-        llvm = pkgs.unstable.llvmPackages_20;
+        llvm = pkgs.llvmPackages_20;
         linux_nitrous_pkg =
           { fetchurl, buildLinux, ... }@args:
           buildLinux (
@@ -108,7 +108,7 @@
               inherit version;
               pname = "linux-${suffix}";
               modDirVersion = lib.versions.pad 3 "${linuxVersion}-${suffix}";
-              stdenv = pkgs.unstable.overrideCC llvm.stdenv (
+              stdenv = pkgs.overrideCC llvm.stdenv (
                 llvm.stdenv.cc.override { inherit (llvm) bintools; }
               );
               nativeBuildInputs = [ llvm.lld ];
@@ -175,7 +175,7 @@
         linux_nitrous = pkgs.callPackage linux_nitrous_pkg { };
       in
       pkgs.recurseIntoAttrs (
-        (pkgs.unstable.linuxPackagesFor linux_nitrous).extend (
+        (pkgs.linuxPackagesFor linux_nitrous).extend (
           lpfinal: lpprev: {
             ryzen-smu = lpprev.ryzen-smu.overrideAttrs (
               oldAttrs:
@@ -202,7 +202,7 @@
               in
               {
                 src = newSrc;
-                stdenv = pkgs.unstable.overrideCC llvm.stdenv (
+                stdenv = pkgs.overrideCC llvm.stdenv (
                   llvm.stdenv.cc.override { inherit (llvm) bintools; }
                 );
                 nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ llvm.lld ];
